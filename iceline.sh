@@ -5,6 +5,21 @@ case "$-" in
 *) return ;;
 esac
 
+_is_git_capable() {
+    # Determines if git is available.
+
+    command -v git >/dev/null
+}
+
+_is_title_capable() {
+    # Determines if the terminal is window title capable.
+
+    case "$TERM" in
+    linux) return 1 ;;
+    *) return 0 ;;
+    esac
+}
+
 # Time color
 PROMPT_COL_TIME='\[\e[0;37m\]'
 # user@host color
@@ -33,6 +48,16 @@ PROMPT_CHARACTER='>'
 PROMPT_ENABLE_NEWLINE=1
 # Line toggle
 PROMPT_ENABLE_LINE=1
+# Window title
+_is_title_capable && PROMPT_ENABLE_TITLE=1
+# Git information
+_is_git_capable && PROMPT_ENABLE_GIT=1
+
+_set_window_title() {
+    # Sets the shell window title.
+
+    printf '\033]0;%s\007' "$1"
+}
 
 _parse_git_branch() {
     # Queries the branch of the current Git repository.
@@ -62,22 +87,22 @@ _parse_git_changes() {
 
 _prompt_command() {
     # Last exit code
-    last_exit="$?"
+    _last_exit="$?"
 
     # Exit code color
-    case "$last_exit" in
-    0 | 130) prompt_color="$PROMPT_COL_SUCCESS" ;;
-    *) prompt_color="$PROMPT_COL_FAILURE" ;;
+    case "$_last_exit" in
+    0 | 130) _prompt_color="$PROMPT_COL_SUCCESS" ;;
+    *) _prompt_color="$PROMPT_COL_FAILURE" ;;
     esac
 
     # Reset prompt
     PS1="\[\e[0;0m\]"
 
     # First newline
-    [ "$PROMPT_ENABLE_NEWLINE" -eq 1 ] && PS1+="\n"
+    [ -n "$PROMPT_ENABLE_NEWLINE" ] && PS1+="\n"
 
     # Top part of line
-    [ "$PROMPT_ENABLE_LINE" -eq 1 ] && PS1+="${PROMPT_COL_LINE}┌ "
+    [ -n "$PROMPT_ENABLE_LINE" ] && PS1+="${PROMPT_COL_LINE}┌ "
 
     # Date
     PS1+="${PROMPT_COL_TIME}\D{${PROMPT_TIME_FORMAT}} "
@@ -93,24 +118,31 @@ _prompt_command() {
     PS1+="${PROMPT_COL_WORK_DIR}\w "
 
     # Git information (if applicable)
-    if git_branch="$(_parse_git_branch)" && git_status="$(_parse_git_changes)"; then
-        PS1+="${git_status}(${git_branch}) "
-    fi
+    [ -n "$PROMPT_ENABLE_GIT" ] && _git_branch="$(_parse_git_branch)" && _git_status="$(_parse_git_changes)" && PS1+="${_git_status}(${_git_branch}) "
 
     # Newline
     PS1+="\n"
 
     # Bottom part of line
-    [ "$PROMPT_ENABLE_LINE" -eq 1 ] && PS1+="${PROMPT_COL_LINE}└ "
+    [ -n "$PROMPT_ENABLE_LINE" ] && PS1+="${PROMPT_COL_LINE}└ "
 
     # SSH information (if applicable)
     [ -n "$SSH_CLIENT" ] && PS1+="${PROMPT_COL_SSH}SSH "
 
     # Prompt character
-    PS1+="${prompt_color}${PROMPT_CHARACTER} "
+    PS1+="${_prompt_color}${PROMPT_CHARACTER} "
 
     # Ending reset
     PS1+="\[\e[0;0m\]"
+
+    # Window title
+    if [ -n "$PROMPT_ENABLE_TITLE" ]; then
+        case "$PWD" in
+        /home/"$USER"*) _cwd="~${PWD#/home/"$USER"}" ;;
+        *) _cwd="$PWD" ;;
+        esac
+        _set_window_title "$(printf '%s@%s - %s' "$USER" "$HOSTNAME" "$_cwd")"
+    fi
 }
 
 PROMPT_COMMAND='_prompt_command'
