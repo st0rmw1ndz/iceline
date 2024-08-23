@@ -23,6 +23,8 @@ PROMPT_COL_SUCCESS='\[\e[1;32m\]'
 PROMPT_COL_FAILURE='\[\e[1;31m\]'
 # Line color
 PROMPT_COL_LINE='\[\e[0;37m\]'
+# SSH notice color
+PROMPT_COL_SSH='\[\e[1;32m\]'
 # Time format
 PROMPT_TIME_FORMAT='%H:%M:%S'
 # Prompt character
@@ -77,7 +79,7 @@ _prompt_command() {
     # Top part of line
     [ "$PROMPT_ENABLE_LINE" -eq 1 ] && PS1+="${PROMPT_COL_LINE}┌ "
 
-    # Date (HH:MM:SS)
+    # Date
     PS1+="${PROMPT_COL_TIME}\D{${PROMPT_TIME_FORMAT}} "
 
     # user@host OR root
@@ -100,6 +102,9 @@ _prompt_command() {
 
     # Bottom part of line
     [ "$PROMPT_ENABLE_LINE" -eq 1 ] && PS1+="${PROMPT_COL_LINE}└ "
+
+    # SSH information (if applicable)
+    [ -n "$SSH_CLIENT" ] && PS1+="${PROMPT_COL_SSH}SSH "
 
     # Prompt character
     PS1+="${prompt_color}${PROMPT_CHARACTER} "
