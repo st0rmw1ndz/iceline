@@ -5,21 +5,6 @@ case "$-" in
 *) return ;;
 esac
 
-_is_git_capable() {
-    # Determines if git is available.
-
-    command -v git >/dev/null
-}
-
-_is_title_capable() {
-    # Determines if the terminal is window title capable.
-
-    case "$TERM" in
-    linux) return 1 ;;
-    *) return 0 ;;
-    esac
-}
-
 # Time color
 PROMPT_COL_TIME='\[\e[0;37m\]'
 # user@host color
@@ -49,9 +34,24 @@ PROMPT_ENABLE_NEWLINE=1
 # Line toggle
 PROMPT_ENABLE_LINE=1
 # Window title
-_is_title_capable && PROMPT_ENABLE_TITLE=1
+PROMPT_ENABLE_TITLE=1
 # Git information
-_is_git_capable && PROMPT_ENABLE_GIT=1
+PROMPT_ENABLE_GIT=1
+
+_is_git_capable() {
+    # Determines if git is available.
+
+    command -v git >/dev/null
+}
+
+_is_title_capable() {
+    # Determines if the terminal is window title capable.
+
+    case "$TERM" in
+    linux) return 1 ;;
+    *) return 0 ;;
+    esac
+}
 
 _set_window_title() {
     # Sets the shell window title.
@@ -118,7 +118,7 @@ _prompt_command() {
     PS1+="${PROMPT_COL_WORK_DIR}\w "
 
     # Git information (if applicable)
-    [ -n "$PROMPT_ENABLE_GIT" ] && _git_branch="$(_parse_git_branch)" && _git_status="$(_parse_git_changes)" && PS1+="${_git_status}(${_git_branch}) "
+    _is_git_capable && [ -n "$PROMPT_ENABLE_GIT" ] && _git_branch="$(_parse_git_branch)" && _git_status="$(_parse_git_changes)" && PS1+="${_git_status}(${_git_branch}) "
 
     # Newline
     PS1+="\n"
@@ -136,7 +136,7 @@ _prompt_command() {
     PS1+="\[\e[0;0m\]"
 
     # Window title
-    if [ -n "$PROMPT_ENABLE_TITLE" ]; then
+    if _is_title_capable && [ -n "$PROMPT_ENABLE_TITLE" ]; then
         case "$PWD" in
         /home/"$USER"*) _cwd="~${PWD#/home/"$USER"}" ;;
         *) _cwd="$PWD" ;;
@@ -144,5 +144,3 @@ _prompt_command() {
         _set_window_title "$(printf '%s@%s - %s' "$USER" "$HOSTNAME" "$_cwd")"
     fi
 }
-
-PROMPT_COMMAND='_prompt_command'
